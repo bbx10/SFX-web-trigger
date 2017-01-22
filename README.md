@@ -6,7 +6,8 @@ Sound Effects Web Trigger
 Press the 0 button to play file T0.wav, press the 1 button to play file T1.wav,
 etc. WAV files are larger than MP3 or OGG files but they seem to work best when
 a button is pressed while a track is still playing. Interrupting MP3 or OGG
-playback sometimes results in static or silence.
+playback sometimes results in static or silence. UPDATE: WAV, MP3, and OGG
+work about the same now when interrupted.
 
 If the ESP8266 is unable to connect to an Access Point, it becomes an Access
 Point. Connect to it by going into your wireless settings. The AP name should
@@ -65,11 +66,15 @@ ROUT                |        |   Right       |Right audio channel
 
 * [Adafruit VS1053 library fork](https://github.com/bbx10/Adafruit_VS1053_Library/)
 has been modified to work on the ESP8266. Interrupts are not used because
-calling feedBuffer() from loop() works fine. Disabling interrupts for more than 1 
+calling feedBuffer() from loop() works fine. Disabling interrupts for more than 1
 msec on ESP8266 causes problem for the WiFi module. And can cause crashes.
 Calling feedBuffer() from an interrupt handler is very bad on the ESP8266.
 
 * [WiFiManager](https://github.com/tzapu/WiFiManager) eliminates
-the need to store the WiFi SSID and password in the source code.  WiFiManager
+the need to store the WiFi SSID and password in the source code. WiFiManager
 will become an access point and web server to get the SSID and password if
 needed.
+
+* [WebSockets](https://github.com/Links2004/arduinoWebSockets) can be installed
+using the IDE library manager. WebSockets is used to update the now playing
+field on the web page.

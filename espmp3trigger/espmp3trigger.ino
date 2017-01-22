@@ -1,7 +1,7 @@
 /*****************************************************************************
   The MIT License (MIT)
 
-  Copyright (c) 2016 by bbx10node@gmail.com
+  Copyright (c) 2016-2017 by bbx10node@gmail.com
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,7 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
-#include <WebSocketsServer.h>   // https://github.com/tzapu/WiFiManager
+#include <WebSocketsServer.h>   // https://github.com/Links2004/arduinoWebSockets
 #include <Hash.h>
 
 /*
@@ -38,33 +38,44 @@
  * This board also has micro SD card slot.
  */
 #include <SPI.h>
-#include <Adafruit_VS1053.h>    // https://github.com/adafruit/Adafruit_VS1053_Library
+#include <Adafruit_VS1053.h>    // https://github.com/bbx10/Adafruit_VS1053_Library
 #include <SD.h>
 
+//#define FEATHERWING
+#ifdef FEATHERWING
+// These are the pins used with Feather ESP8266 and VS1053 FeatherWing
+#define BREAKOUT_RESET  -1  // VS1053 reset pin (output)
+#define BREAKOUT_CS     16  // VS1053 chip select pin (output)
+#define BREAKOUT_DCS    15  // VS1053 Data/command select pin (output)
+#define CARDCS          2   // Card chip select pin
+#define DREQ            0   // VS1053 Data request
+#else
 // These are the pins used with ESP8266 and Adafruit VS1053 breakout
 #define BREAKOUT_RESET  0   // VS1053 reset pin (output)
 #define BREAKOUT_CS     5   // VS1053 chip select pin (output)
 #define BREAKOUT_DCS    16  // VS1053 Data/command select pin (output)
 #define CARDCS          15  // Card chip select pin
 #define DREQ            4   // VS1053 Data request
+#endif
 
 Adafruit_VS1053_FilePlayer musicPlayer =
   Adafruit_VS1053_FilePlayer(BREAKOUT_RESET, BREAKOUT_CS, BREAKOUT_DCS, DREQ, CARDCS);
 
 void mp3_setup(void)
 {
-  while (!SD.begin(CARDCS)) {
-    Serial.println(F("SD failed, or not present"));
-    delay(500);
-  }
-  Serial.println("SD OK!");
-
+  Serial.printf("Adafruit_VS1053_FilePlayer(%d, %d, %d, %d, %d)\n", BREAKOUT_RESET, BREAKOUT_CS, BREAKOUT_DCS, DREQ, CARDCS);
   if (! musicPlayer.begin()) { // initialise the music player
     Serial.println(F("Couldn't find VS1053, do you have the right pins defined?"));
     delay(1000);
     ESP.restart();
   }
   Serial.println(F("VS1053 found"));
+
+  while (!SD.begin(CARDCS)) {
+    Serial.println(F("SD failed, or not present"));
+    delay(500);
+  }
+  Serial.println("SD OK!");
 
   // Set volume for left, right channels. lower numbers == louder volume!
   musicPlayer.setVolume(20, 20);
@@ -264,6 +275,7 @@ function buttonup(e) {
  */
 ESP8266WebServer server(80);
 WebSocketsServer webSocket = WebSocketsServer(81);
+int Playing;
 
 void startPlaying(const char *filename)
 {
@@ -274,10 +286,12 @@ void startPlaying(const char *filename)
   musicPlayer.startPlayingFile(filename);
   strncat(nowPlaying, filename, sizeof(nowPlaying)-strlen(nowPlaying)-1);
   webSocket.broadcastTXT(nowPlaying);
+  Playing = 1;
 }
 
 void update_browser() {
-  if (!musicPlayer.playing()) {
+  if ((Playing == 1) && musicPlayer.stopped()) {
+    Playing = 0;
     webSocket.broadcastTXT("nowPlaying=");
   }
 }
@@ -306,34 +320,34 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
           (payload[6] == '1')) {
         switch (payload[4]) {
           case '0':
-            startPlaying("T0.wav");
+            startPlaying("T0.mp3");
             break;
           case '1':
-            startPlaying("T1.wav");
+            startPlaying("T1.mp3");
             break;
           case '2':
-            startPlaying("T2.wav");
+            startPlaying("T2.mp3");
             break;
           case '3':
-            startPlaying("T3.wav");
+            startPlaying("T3.mp3");
             break;
           case '4':
-            startPlaying("T4.wav");
+            startPlaying("T4.mp3");
             break;
           case '5':
-            startPlaying("T5.wav");
+            startPlaying("T5.mp3");
             break;
           case '6':
-            startPlaying("T6.wav");
+            startPlaying("T6.mp3");
             break;
           case '7':
-            startPlaying("T7.wav");
+            startPlaying("T7.mp3");
             break;
           case '8':
-            startPlaying("T8.wav");
+            startPlaying("T8.mp3");
             break;
           case '9':
-            startPlaying("T9.wav");
+            startPlaying("T9.mp3");
             break;
         }
       }
