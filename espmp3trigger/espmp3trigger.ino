@@ -38,7 +38,7 @@
  * This board also has micro SD card slot.
  */
 #include <SPI.h>
-#include <Adafruit_VS1053.h>    // https://github.com/bbx10/Adafruit_VS1053_Library
+#include <Adafruit_VS1053.h>    // https://github.com/adafruit/Adafruit_VS1053_Library
 #include <SD.h>
 
 //#define FEATHERWING
@@ -63,6 +63,12 @@ Adafruit_VS1053_FilePlayer musicPlayer =
 
 void mp3_setup(void)
 {
+  while (!SD.begin(CARDCS)) {
+    Serial.println(F("SD failed, or not present"));
+    delay(500);
+  }
+  Serial.println(F("SD OK!"));
+
   Serial.printf("Adafruit_VS1053_FilePlayer(%d, %d, %d, %d, %d)\n", BREAKOUT_RESET, BREAKOUT_CS, BREAKOUT_DCS, DREQ, CARDCS);
   if (! musicPlayer.begin()) { // initialise the music player
     Serial.println(F("Couldn't find VS1053, do you have the right pins defined?"));
@@ -70,12 +76,6 @@ void mp3_setup(void)
     ESP.restart();
   }
   Serial.println(F("VS1053 found"));
-
-  while (!SD.begin(CARDCS)) {
-    Serial.println(F("SD failed, or not present"));
-    delay(500);
-  }
-  Serial.println("SD OK!");
 
   // Set volume for left, right channels. lower numbers == louder volume!
   musicPlayer.setVolume(20, 20);
@@ -275,7 +275,7 @@ function buttonup(e) {
  */
 ESP8266WebServer server(80);
 WebSocketsServer webSocket = WebSocketsServer(81);
-int Playing;
+bool Playing;
 
 void startPlaying(const char *filename)
 {
@@ -286,12 +286,12 @@ void startPlaying(const char *filename)
   musicPlayer.startPlayingFile(filename);
   strncat(nowPlaying, filename, sizeof(nowPlaying)-strlen(nowPlaying)-1);
   webSocket.broadcastTXT(nowPlaying);
-  Playing = 1;
+  Playing = true;
 }
 
 void update_browser() {
-  if ((Playing == 1) && musicPlayer.stopped()) {
-    Playing = 0;
+  if (Playing && musicPlayer.stopped()) {
+    Playing = false;
     webSocket.broadcastTXT("nowPlaying=");
   }
 }
@@ -315,7 +315,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
       Serial.printf("[%u] get Text: %s\r\n", num, payload);
 
       // Looks for button press "bSFXn=1" messages where n='0'..'9'
-      if ((length == 7) && 
+      if ((length == 7) &&
           (memcmp((const char *)payload, "bSFX", 4) == 0) &&
           (payload[6] == '1')) {
         switch (payload[4]) {
@@ -378,10 +378,10 @@ void webserver_setup(void)
   Serial.println("websocket server started");
 
   if(MDNS.begin("espsfxtrigger")) {
-    Serial.println("MDNS responder started. Connect to http://espsfxtrigger.local/");
+    Serial.println(F("MDNS responder started. Connect to http://espsfxtrigger.local/"));
   }
   else {
-    Serial.println("MDNS responder failed");
+    Serial.println(F("MDNS responder failed"));
   }
 
   // handle "/"
@@ -417,7 +417,8 @@ void wifiman_setup(void)
   //WiFiManager
   //Local intialization. Once its business is done, there is no need to keep it around
   WiFiManager wifiManager;
-  //reset saved settings
+
+  //reset saved settings. Clears SSID and password
   //wifiManager.resetSettings();
 
   //fetches ssid and pass from eeprom and tries to connect
